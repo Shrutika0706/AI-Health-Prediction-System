@@ -165,8 +165,6 @@ Always consult a qualified healthcare professional for diagnosis and treatment.
 
 Shrutika Deshmukh
 
-Computer Engineering Graduate
-
 Email:
 shrutikadeshmukh0706@gmail.com
 
