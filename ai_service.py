@@ -2,61 +2,61 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 from google import genai
+from google.genai import types
 
-# Load .env from current folder
+# Load .env
 load_dotenv(dotenv_path=Path(__file__).parent / ".env")
 
+
 def get_client():
-    return genai.Client(
-        api_key=os.getenv("GEMINI_API_KEY")
-    )
+    api_key = os.getenv("GEMINI_API_KEY")
+
+    if not api_key:
+        raise Exception("GEMINI_API_KEY not found in .env file")
+
+    return genai.Client(api_key=api_key)
 
 
 def generate_health_remark(glucose, haemoglobin, cholesterol):
 
     prompt = f"""
-You are an experienced healthcare assistant.
+You are a healthcare assistant.
 
-Analyze the patient's blood report.
-
-Blood Report:
+Patient Blood Report
 
 Glucose: {glucose} mg/dL
-
 Haemoglobin: {haemoglobin} g/dL
-
 Cholesterol: {cholesterol} mg/dL
 
-Return your answer in markdown using EXACTLY this format.
+Generate the report exactly in this format:
 
-# 🩺 Health Status
+Health Status:
+(one sentence)
 
-(Overall condition)
+Findings:
+(two short sentences)
 
-# ⚠ Findings
+Recommendations:
+(three short recommendations)
 
-• Finding 1
+Disclaimer:
+(one sentence)
 
-• Finding 2
-
-# 💡 Recommendations
-
-• Recommendation 1
-
-• Recommendation 2
-
-# 📌 Disclaimer
-
-Mention that this is not a medical diagnosis and consultation with a healthcare professional is recommended.
-
-Keep response under 180 words.
+Keep the entire response under 120 words.
+Do not use markdown.
+Do not use HTML.
+Do not use bullet symbols.
 """
 
     client = get_client()
 
     response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt
+        model="gemini-3.1-flash-lite",
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            temperature=0.2,
+            max_output_tokens=180,
+        ),
     )
 
     return response.text

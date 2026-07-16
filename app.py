@@ -56,7 +56,49 @@ st.markdown("""
     color:#ff5252;
     font-weight:bold;
 }
+.patient-report h1{
+    font-size:24px !important;
+    margin-top:12px !important;
+    margin-bottom:10px !important;
+}
 
+.patient-report h2{
+    font-size:20px !important;
+    margin-top:10px !important;
+    margin-bottom:8px !important;
+}
+
+
+
+.patient-report p{
+    font-size:17px !important;
+    line-height:1.9 !important;
+    color:#f1f1f1;
+    margin-bottom:18px;
+}
+          
+.patient-report{
+    background:#22242c;
+    padding:28px;
+    border-radius:16px;
+    border:1px solid #3b3d47;
+    box-shadow:0 8px 18px rgba(0,0,0,.35);
+    margin-top:15px;
+}
+
+.patient-report h3{
+    color:#00e676;
+    font-size:26px !important;
+    font-weight:700;
+    margin-top:25px;
+    margin-bottom:15px;
+    border-left:5px solid #00e676;
+    padding-left:10px;
+}
+.patient-report li{
+    font-size:15px !important;
+    line-height:1.7 !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -109,6 +151,14 @@ from database import (
 # Create table
 create_table()
 
+
+# Session State
+if "latest_report" not in st.session_state:
+    st.session_state.latest_report = None
+
+if "show_report" not in st.session_state:
+    st.session_state.show_report = False
+
 st.title("🏥 AI Health Prediction System")
 # =======================
 # Dashboard Statistics
@@ -150,6 +200,41 @@ with col3:
 )
 
 st.divider()
+if st.session_state.show_report:
+
+    with st.expander("🤖 Latest AI Health Assessment", expanded=True):
+
+        st.success("AI Generated Health Report")
+
+        # st.markdown(
+        #     f"""
+        #     <div class="patient-report">
+        #         {st.session_state.latest_report}
+        #     </div>
+        #     """,
+        #     unsafe_allow_html=True
+        # )
+    formatted = ""
+    if st.session_state.latest_report:
+        formatted = (
+            st.session_state.latest_report
+            .replace("Health Status:", "<h3> Health Status</h3>")
+            .replace("Findings:", "<h3> Findings</h3>")
+            .replace("Recommendations:", "<h3> Recommendations</h3>")
+            .replace("Disclaimer:", "<h3>⚠ Disclaimer</h3>")
+        )
+
+        st.markdown(
+            f"""
+            <div class="patient-report">
+                {formatted}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        st.warning(
+            "⚠ This AI assessment is for informational purposes only and should not replace professional medical advice."
+        )
 
 st.header("Patient Registration")
 
@@ -233,7 +318,7 @@ if st.button(
                 "⚠ An identical patient record already exists."
             )
             st.stop()
-
+        remarks = None
         with st.spinner("Generating AI Health Assessment..."):
 
             try:
@@ -241,29 +326,42 @@ if st.button(
                 remarks = generate_health_remark(
                     glucose,
                     haemoglobin,
-                    cholesterol
+                    cholesterol,
                 )
-            except Exception:
-                st.code(traceback.format_exc())
+            # except Exception:
+
+            #     st.error(
+            #         "❌ Unable to generate AI Health Assessment because the Gemini API is currently unavailable or the daily quota has been exceeded."
+            #     )
+
+            #     st.info(
+            #         "Please try again after some time. The patient record has NOT been saved."
+            #     )
+
+            except Exception as e:
+
+                st.exception(e)
+
                 st.stop()
 
-        add_patient(
-            name,
-            str(dob),
-            email,
-            glucose,
-            haemoglobin,
-            cholesterol,
-            remarks
-        )
+                # Exit this button click only
+                remarks = None
+        if remarks is not None:        
 
-        st.success("🎉 Patient Registered Successfully!" \
-        "AI Health Report Generated.")
+            add_patient(
+                name,
+                str(dob),
+                email,
+                glucose,
+                haemoglobin,
+                cholesterol,
+                remarks
+            )
+            st.session_state.latest_report = remarks
+            st.session_state.show_report = True
 
-        with st.expander("🤖 AI Health Assessment", expanded=True):
-            st.markdown(remarks)
-            st.warning("⚠ This AI assessment is for informational purposes only and should not replace professional medical advice."
-        )
+            st.success("🎉 Patient Registered Successfully!")
+            st.rerun()
             
 
 st.header("📋 Patient Records")
@@ -367,7 +465,14 @@ else:
 
                 st.success("AI Generated Health Report")
 
-                st.markdown(remarks)
+                st.markdown(
+                    f"""
+                    <div class="patient-report">
+                       {remarks}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                    )
             
 
             # ==========================
